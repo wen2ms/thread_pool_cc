@@ -16,9 +16,9 @@ class ThreadPool {
     int get_alive_num();
 
   private:
-    void* manager(void* arg); 
+    static void* manager(void* arg); 
 
-    void* worker(void* arg);
+    static void* worker(void* arg);
 
     void thread_exit();
 
