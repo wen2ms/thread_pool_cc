@@ -22,7 +22,7 @@ class ThreadPool {
 
     void thread_exit();
 
-    TaskQueue task_queue_;
+    TaskQueue* task_queue_;
 
     pthread_t manager_id_;
     pthread_t* thread_ids_;
@@ -35,9 +35,9 @@ class ThreadPool {
 
     pthread_mutex_t mutex_pool_;
 
-    pthread_cond_t not_empty;
+    pthread_cond_t not_empty_;
 
-    bool shotdown;
+    bool shotdown_;
 };
 
 #endif  // THREAD_POOL_H
