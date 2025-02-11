@@ -53,6 +53,16 @@ ThreadPool::ThreadPool(int min_num, int max_num) {
     }
 }
 
+void ThreadPool::add_task(Task task) {
+    if (shotdown_) {
+        return;
+    }
+
+    task_queue_->add_task(task);
+
+    pthread_cond_broadcast(&not_empty_);
+}
+
 void* ThreadPool::manager(void* arg) {
     ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
 
