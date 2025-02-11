@@ -63,6 +63,22 @@ void ThreadPool::add_task(Task task) {
     pthread_cond_broadcast(&not_empty_);
 }
 
+int ThreadPool::get_busy_num() {
+    pthread_mutex_lock(&mutex_pool_);
+    int busy_num = busy_num_;
+    pthread_mutex_unlock(&mutex_pool_);
+
+    return busy_num;
+}
+
+int ThreadPool::get_alive_num() {
+    pthread_mutex_lock(&mutex_pool_);
+    int alive_num = alive_num_;
+    pthread_mutex_unlock(&mutex_pool_);
+
+    return alive_num;
+}
+
 void* ThreadPool::manager(void* arg) {
     ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
 
