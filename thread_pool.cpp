@@ -1,13 +1,15 @@
 #include "thread_pool.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <iostream>
 
-ThreadPool::ThreadPool(int min_num, int max_num) {
+template <class T>
+ThreadPool<T>::ThreadPool(int min_num, int max_num) {
     do {
-        task_queue_ = new TaskQueue;
+        task_queue_ = new TaskQueue<T>;
 
         if (task_queue_ == nullptr) {
             std::cout << "new task_queue_ failed..." << std::endl;
@@ -53,12 +55,13 @@ ThreadPool::ThreadPool(int min_num, int max_num) {
     }
 }
 
-ThreadPool::~ThreadPool() {
+template <class T>
+ThreadPool<T>::~ThreadPool() {
     shotdown_ = true;
     pthread_join(manager_id_, NULL);
 
     for (int i = 0; i < alive_num_; ++i) {
-        pthread_cond_broadcast(&not_empty_);
+        pthread_cond_signal(&not_empty_);
     }
 
     if (task_queue_) {
@@ -76,17 +79,19 @@ ThreadPool::~ThreadPool() {
     pthread_cond_destroy(&not_empty_);
 }
 
-void ThreadPool::add_task(Task task) {
+template <class T>
+void ThreadPool<T>::add_task(Task<T> task) {
     if (shotdown_) {
         return;
     }
 
     task_queue_->add_task(task);
 
-    pthread_cond_broadcast(&not_empty_);
+    pthread_cond_signal(&not_empty_);
 }
 
-int ThreadPool::get_busy_num() {
+template <class T>
+int ThreadPool<T>::get_busy_num() {
     pthread_mutex_lock(&mutex_pool_);
     int busy_num = busy_num_;
     pthread_mutex_unlock(&mutex_pool_);
@@ -94,7 +99,8 @@ int ThreadPool::get_busy_num() {
     return busy_num;
 }
 
-int ThreadPool::get_alive_num() {
+template <class T>
+int ThreadPool<T>::get_alive_num() {
     pthread_mutex_lock(&mutex_pool_);
     int alive_num = alive_num_;
     pthread_mutex_unlock(&mutex_pool_);
@@ -102,8 +108,9 @@ int ThreadPool::get_alive_num() {
     return alive_num;
 }
 
-void* ThreadPool::manager(void* arg) {
-    ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
+template <class T>
+void* ThreadPool<T>::manager(void* arg) {
+    ThreadPool<T>* thread_pool = static_cast<ThreadPool<T>*>(arg);
 
     while (!thread_pool->shotdown_) {
         sleep(3);
@@ -121,8 +128,8 @@ void* ThreadPool::manager(void* arg) {
 
             int counter = 0;
 
-            for (int i = 0; i < thread_pool->max_num_ && counter < kMaxAppendNum && thread_pool->alive_num_ < thread_pool->max_num_;
-                 ++i) {
+            for (int i = 0;
+                 i < thread_pool->max_num_ && counter < kMaxAppendNum && thread_pool->alive_num_ < thread_pool->max_num_; ++i) {
                 if (thread_pool->thread_ids_[i] == 0) {
                     pthread_create(&thread_pool->thread_ids_[i], NULL, worker, thread_pool);
 
@@ -142,7 +149,7 @@ void* ThreadPool::manager(void* arg) {
             pthread_mutex_unlock(&thread_pool->mutex_pool_);
 
             for (int i = 0; i < kMaxAppendNum; ++i) {
-                pthread_cond_broadcast(&thread_pool->not_empty_);
+                pthread_cond_signal(&thread_pool->not_empty_);
             }
         }
     }
@@ -150,8 +157,9 @@ void* ThreadPool::manager(void* arg) {
     return nullptr;
 }
 
-void* ThreadPool::worker(void* arg) {
-    ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
+template <class T>
+void* ThreadPool<T>::worker(void* arg) {
+    ThreadPool<T>* thread_pool = static_cast<ThreadPool<T>*>(arg);
 
     while (true) {
         pthread_mutex_lock(&thread_pool->mutex_pool_);
@@ -178,20 +186,20 @@ void* ThreadPool::worker(void* arg) {
             thread_pool->thread_exit();
         }
 
-        Task task = thread_pool->task_queue_->take_task();
+        Task<T> task = thread_pool->task_queue_->take_task();
 
         thread_pool->busy_num_++;
 
         pthread_mutex_unlock(&thread_pool->mutex_pool_);
 
-        std::cout << "thread " << pthread_self() << " starts working..." << std::endl;
+        std::cout << "thread " << static_cast<void*>(pthread_self()) << " starts working..." << std::endl;
 
         task.func_(task.arg_);
 
         delete task.arg_;
         task.arg_ = nullptr;
 
-        std::cout << "thread " << pthread_self() << " ends working..." << std::endl;
+        std::cout << "thread " << static_cast<void*>(pthread_self()) << " ends working..." << std::endl;
         pthread_mutex_lock(&thread_pool->mutex_pool_);
 
         thread_pool->busy_num_--;
@@ -202,14 +210,17 @@ void* ThreadPool::worker(void* arg) {
     return nullptr;
 }
 
-void ThreadPool::thread_exit() {
+template <class T>
+void ThreadPool<T>::thread_exit() {
     pthread_t tid = pthread_self();
 
     for (int i = 0; i < max_num_; ++i) {
         if (thread_ids_[i] == tid) {
             thread_ids_[i] = 0;
 
-            std::cout << "thread " << tid << " exiting..." << std::endl;
+            std::cout << "thread " << static_cast<void*>(tid) << " exiting..." << std::endl;
+
+            break;
         }
     }
 

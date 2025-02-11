@@ -6,25 +6,27 @@
 
 using callback_func = void (*)(void* arg);
 
+template <class T>
 class Task {
   public:
-    Task() : func_(nullptr), arg_(nullptr) {}
+    Task<T>() : func_(nullptr), arg_(nullptr) {}
     
-    Task(callback_func func, void* arg) : func_(func), arg_(arg) {}
+    Task<T>(callback_func func, void* arg) : func_(func), arg_(static_cast<T*>(arg)) {}
 
     callback_func func_;
-    void* arg_;
+    T* arg_;
 };
 
+template <class T>
 class TaskQueue {
   public:
     TaskQueue();
     ~TaskQueue();
 
-    void add_task(Task task);
+    void add_task(Task<T> task);
     void add_task(callback_func func, void* arg);
 
-    Task take_task();
+    Task<T> take_task();
 
     inline size_t tasks_number() {
         return task_queue_.size();
@@ -32,7 +34,7 @@ class TaskQueue {
 
   private:
     pthread_mutex_t mutex_;
-    std::queue<Task> task_queue_;
+    std::queue<Task<T>> task_queue_;
 };
 
 #endif  // TASK_QUEUE_H

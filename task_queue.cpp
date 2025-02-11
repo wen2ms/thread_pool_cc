@@ -1,14 +1,17 @@
 #include "task_queue.h"
 
-TaskQueue::TaskQueue() {
+template <class T>
+TaskQueue<T>::TaskQueue() {
     pthread_mutex_init(&mutex_, NULL);
 }
 
-TaskQueue::~TaskQueue() {
+template <class T>
+TaskQueue<T>::~TaskQueue() {
     pthread_mutex_destroy(&mutex_);
 }
 
-void TaskQueue::add_task(Task task) {
+template <class T>
+void TaskQueue<T>::add_task(Task<T> task) {
     pthread_mutex_lock(&mutex_);
 
     task_queue_.push(task);
@@ -16,16 +19,18 @@ void TaskQueue::add_task(Task task) {
     pthread_mutex_unlock(&mutex_);
 }
 
-void TaskQueue::add_task(callback_func func, void* arg) {
+template <class T>
+void TaskQueue<T>::add_task(callback_func func, void* arg) {
     pthread_mutex_lock(&mutex_);
 
-    task_queue_.push(Task(func, arg));
+    task_queue_.push(Task<T>(func, arg));
 
     pthread_mutex_unlock(&mutex_);
 }
 
-Task TaskQueue::take_task() {
-    Task task;
+template <class T>
+Task<T> TaskQueue<T>::take_task() {
+    Task<T> task;
 
     pthread_mutex_lock(&mutex_);
     if (!task_queue_.empty()) {

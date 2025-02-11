@@ -1,28 +1,30 @@
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
+#include "task_queue.cpp"
 #include "task_queue.h"
 
+template <class T>
 class ThreadPool {
   public:
     ThreadPool(int min_num_, int max_num);
 
     ~ThreadPool();
 
-    void add_task(Task task);
+    void add_task(Task<T> task);
 
     int get_busy_num();
 
     int get_alive_num();
 
   private:
-    static void* manager(void* arg); 
+    static void* manager(void* arg);
 
     static void* worker(void* arg);
 
     void thread_exit();
 
-    TaskQueue* task_queue_;
+    TaskQueue<T>* task_queue_;
 
     pthread_t manager_id_;
     pthread_t* thread_ids_;
