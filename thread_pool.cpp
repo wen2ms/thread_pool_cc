@@ -53,6 +53,29 @@ ThreadPool::ThreadPool(int min_num, int max_num) {
     }
 }
 
+ThreadPool::~ThreadPool() {
+    shotdown_ = true;
+    pthread_join(manager_id_, NULL);
+
+    for (int i = 0; i < alive_num_; ++i) {
+        pthread_cond_broadcast(&not_empty_);
+    }
+
+    if (task_queue_) {
+        delete task_queue_;
+        task_queue_ = nullptr;
+    }
+
+    if (thread_ids_) {
+        delete[] thread_ids_;
+        thread_ids_ = nullptr;
+    }
+
+    pthread_mutex_destroy(&mutex_pool_);
+
+    pthread_cond_destroy(&not_empty_);
+}
+
 void ThreadPool::add_task(Task task) {
     if (shotdown_) {
         return;
