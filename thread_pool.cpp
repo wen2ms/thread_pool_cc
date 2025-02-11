@@ -28,14 +28,14 @@ ThreadPool::ThreadPool(int min_num, int max_num) {
         alive_num_ = min_num;
         exit_num_ = 0;
 
-        if (pthread_mutex_init(&mutex_pool_, nullptr) != 0 || pthread_cond_init(&not_empty_, nullptr) != 0) {
+        if (pthread_mutex_init(&mutex_pool_, NULL) != 0 || pthread_cond_init(&not_empty_, NULL) != 0) {
             std::cout << "mutex or condition init failed..." << std::endl;
             break;
         }
 
         shotdown_ = false;
 
-        pthread_create(&manager_id_, nullptr, manager, this);
+        pthread_create(&manager_id_, NULL, manager, this);
         for (int i = 0; i < min_num; ++i) {
             pthread_create(&thread_ids_[i], NULL, worker, this);
         }
@@ -69,7 +69,7 @@ void* ThreadPool::worker(void* arg) {
 
                     pthread_mutex_unlock(&thread_pool->mutex_pool_);
 
-                    thread_exit(thread_pool);
+                    thread_pool->thread_exit();
                 }
             }
         }
@@ -77,7 +77,7 @@ void* ThreadPool::worker(void* arg) {
         if (thread_pool->shotdown_) {
             pthread_mutex_unlock(&thread_pool->mutex_pool_);
 
-            thread_exit(thread_pool);
+            thread_pool->thread_exit();
         }
 
         Task task = thread_pool->task_queue_->take_task();
@@ -102,4 +102,18 @@ void* ThreadPool::worker(void* arg) {
     }
 
     return nullptr;
+}
+
+void ThreadPool::thread_exit() {
+    pthread_t tid = pthread_self();
+
+    for (int i = 0; i < max_num_; ++i) {
+        if (thread_ids_[i] == tid) {
+            thread_ids_[i] = 0;
+            
+            std::cout << "thread " << tid << " exiting..." << std::endl;
+        }
+    }
+
+    pthread_exit(NULL);
 }
