@@ -8,7 +8,7 @@
 void task_func(void* arg) {
     int* num = static_cast<int*>(arg);
 
-    std::cout << "thread " << static_cast<void*>(pthread_self()) << ", number = " << *num << std::endl;
+    printf("thread %p, number = %d\n", pthread_self(), *num);
 
     sleep(1);
 }

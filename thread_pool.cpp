@@ -12,14 +12,14 @@ ThreadPool<T>::ThreadPool(int min_num, int max_num) {
         task_queue_ = new TaskQueue<T>;
 
         if (task_queue_ == nullptr) {
-            std::cout << "new task_queue_ failed..." << std::endl;
+            printf("new task_queue_ failed...\n");
             break;
         }
 
         thread_ids_ = new pthread_t[max_num];
 
         if (thread_ids_ == nullptr) {
-            std::cout << "new thread_ids failed..." << std::endl;
+            printf("new thread_ids failed...\n");
             break;
         }
 
@@ -32,7 +32,7 @@ ThreadPool<T>::ThreadPool(int min_num, int max_num) {
         exit_num_ = 0;
 
         if (pthread_mutex_init(&mutex_pool_, NULL) != 0 || pthread_cond_init(&not_empty_, NULL) != 0) {
-            std::cout << "mutex or condition init failed..." << std::endl;
+            printf("mutex or condition init failed...\n");
             break;
         }
 
@@ -192,14 +192,14 @@ void* ThreadPool<T>::worker(void* arg) {
 
         pthread_mutex_unlock(&thread_pool->mutex_pool_);
 
-        std::cout << "thread " << static_cast<void*>(pthread_self()) << " starts working..." << std::endl;
+        printf("thread %p starts working...\n", pthread_self());
 
         task.func_(task.arg_);
 
         delete task.arg_;
         task.arg_ = nullptr;
 
-        std::cout << "thread " << static_cast<void*>(pthread_self()) << " ends working..." << std::endl;
+        printf("thread %p ends working...\n", pthread_self());
         pthread_mutex_lock(&thread_pool->mutex_pool_);
 
         thread_pool->busy_num_--;
@@ -218,7 +218,7 @@ void ThreadPool<T>::thread_exit() {
         if (thread_ids_[i] == tid) {
             thread_ids_[i] = 0;
 
-            std::cout << "thread " << static_cast<void*>(tid) << " exiting..." << std::endl;
+            printf("thread %p exiting...\n", tid);
 
             break;
         }
