@@ -33,6 +33,8 @@ class ThreadPool {
     int alive_num_;
     int exit_num_;
 
+    static const int kMaxAppendNum = 2;
+
     pthread_mutex_t mutex_pool_;
 
     pthread_cond_t not_empty_;

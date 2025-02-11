@@ -1,6 +1,7 @@
 #include "thread_pool.h"
 
 #include <string.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -52,6 +53,54 @@ ThreadPool::ThreadPool(int min_num, int max_num) {
     }
 }
 
+void* ThreadPool::manager(void* arg) {
+    ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
+
+    while (!thread_pool->shotdown_) {
+        sleep(3);
+
+        pthread_mutex_lock(&thread_pool->mutex_pool_);
+
+        int queue_size = thread_pool->task_queue_->tasks_number();
+        int alive_num = thread_pool->alive_num_;
+        int busy_num = thread_pool->busy_num_;
+
+        pthread_mutex_unlock(&thread_pool->mutex_pool_);
+
+        if (queue_size > alive_num && alive_num < thread_pool->max_num_) {
+            pthread_mutex_lock(&thread_pool->mutex_pool_);
+
+            int counter = 0;
+
+            for (int i = 0; i < thread_pool->max_num_ && counter < kMaxAppendNum && thread_pool->alive_num_ < thread_pool->max_num_;
+                 ++i) {
+                if (thread_pool->thread_ids_[i] == 0) {
+                    pthread_create(&thread_pool->thread_ids_[i], NULL, worker, thread_pool);
+
+                    counter++;
+                    thread_pool->alive_num_++;
+                }
+            }
+
+            pthread_mutex_unlock(&thread_pool->mutex_pool_);
+        }
+
+        if (busy_num * 2 < alive_num && alive_num > thread_pool->min_num_) {
+            pthread_mutex_lock(&thread_pool->mutex_pool_);
+
+            thread_pool->exit_num_ = kMaxAppendNum;
+
+            pthread_mutex_unlock(&thread_pool->mutex_pool_);
+
+            for (int i = 0; i < kMaxAppendNum; ++i) {
+                pthread_cond_broadcast(&thread_pool->not_empty_);
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 void* ThreadPool::worker(void* arg) {
     ThreadPool* thread_pool = static_cast<ThreadPool*>(arg);
 
@@ -61,7 +110,7 @@ void* ThreadPool::worker(void* arg) {
         while (thread_pool->task_queue_->tasks_number() == 0 && !thread_pool->shotdown_) {
             pthread_cond_wait(&thread_pool->not_empty_, &thread_pool->mutex_pool_);
 
-            if (thread_pool->exit_num_ > 0)  {
+            if (thread_pool->exit_num_ > 0) {
                 thread_pool->exit_num_--;
 
                 if (thread_pool->alive_num_ > thread_pool->min_num_) {
@@ -110,7 +159,7 @@ void ThreadPool::thread_exit() {
     for (int i = 0; i < max_num_; ++i) {
         if (thread_ids_[i] == tid) {
             thread_ids_[i] = 0;
-            
+
             std::cout << "thread " << tid << " exiting..." << std::endl;
         }
     }
