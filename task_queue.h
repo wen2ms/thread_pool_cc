@@ -1,5 +1,5 @@
-#ifndef TASK_QUEUE
-#define TASK_QUEUE
+#ifndef TASK_QUEUE_H
+#define TASK_QUEUE_H
 
 #include <queue>
 #include <pthread.h>
@@ -22,11 +22,11 @@ class TaskQueue {
     ~TaskQueue();
 
     void add_task(Task task);
+    void add_task(callback_func func, void* arg);
 
     Task take_task();
-    Task take_task(callback_func func, void* arg);
 
-    inline int tasks_number() {
+    inline size_t tasks_number() {
         return task_queue_.size();
     }
 
@@ -35,4 +35,4 @@ class TaskQueue {
     std::queue<Task> task_queue_;
 };
 
-#endif  // TASK_QUEUE
+#endif  // TASK_QUEUE_H
